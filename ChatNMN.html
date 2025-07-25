@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Chatbot Nâng Cấp</title>
+    <style>
+        body {
+            background-color: #000000;
+            color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #chat-container {
+            width: 95vw;
+            max-width: 1400px;
+            height: 95vh;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #424242;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        #chat-history {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- CSS CHO PLACEHOLDER 'ChatMN' --- */
+        #chat-placeholder {
+            flex-grow: 1; /* Giúp nó chiếm hết không gian còn lại */
+            display: flex;
+            justify-content: center; /* Căn giữa theo chiều ngang */
+            align-items: center;    /* Căn giữa theo chiều dọc */
+            color: #555; /* Màu xám */
+            font-size: 3rem; /* Kích thước chữ */
+            font-weight: bold;
+            user-select: none; /* Không cho người dùng bôi đen chữ */
+        }
+        /* -------------------------------------- */
+
+        .message {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .user-message {
+            background-color: #424242;
+            align-self: flex-end;
+        }
+        
+        .ai-message {
+            background-color: transparent;
+            align-self: flex-start;
+            padding: 5px 0;
+            border-radius: 0;
+            max-width: 98%;
+        }
+
+        #input-area {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #424242;
+        }
+
+        #user-input {
+            flex-grow: 1;
+            background-color: #424242;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            resize: none;
+            font-size: 16px;
+        }
+
+        #send-button {
+            background-color: #f5f5f5;
+            color: black;
+            border: none;
+            padding: 10px 15px;
+            margin-left: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        #send-button:hover {
+            background-color: #c0c0c0;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="chat-container">
+        <div id="chat-history">
+            <div id="chat-placeholder">ChatMN</div>
+            </div>
+        <div id="input-area">
+            <textarea id="user-input" placeholder="Nhập tin nhắn của bạn..."></textarea>
+            <button id="send-button">Gửi</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const chatHistory = document.getElementById('chat-history');
+            const userInput = document.getElementById('user-input');
+            const sendButton = document.getElementById('send-button');
+            
+            // --- JS ĐỂ LẤY THAM CHIẾU TỚI PLACEHOLDER ---
+            const chatPlaceholder = document.getElementById('chat-placeholder');
+            // ---------------------------------------------
+
+            // THAY THẾ 'YOUR_API_KEY' BẰNG KHÓA API CỦA BẠN
+            const API_KEY = 'AIzaSyDm5t_0OiuEIXEuCBQ5UORlUE1O1l21N_g'; // Cảnh báo: Không để lộ API Key ở phía client trong môi trường thực tế!
+            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
+
+            sendButton.addEventListener('click', sendMessage);
+            userInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            function sendMessage() {
+                const messageText = userInput.value.trim();
+                if (messageText === '' || !API_KEY || API_KEY === 'YOUR_API_KEY') {
+                    if (!API_KEY || API_KEY === 'YOUR_API_KEY') {
+                       alert('Vui lòng thay thế "YOUR_API_KEY" bằng khóa API của bạn trong code JavaScript.');
+                    }
+                    return;
+                };
+
+                // --- JS ĐỂ ẨN PLACEHOLDER KHI GỬI TIN NHẮN ĐẦU TIÊN ---
+                if (chatPlaceholder) {
+                    chatPlaceholder.style.display = 'none';
+                }
+                // ----------------------------------------------------
+
+                appendMessage(messageText, 'user-message');
+                userInput.value = '';
+
+                const waitingMessage = appendMessage('Thinking..', 'ai-message');
+
+                fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: messageText
+                            }]
+                        }]
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    chatHistory.removeChild(waitingMessage);
+                    if (data.candidates && data.candidates.length > 0 && data.candidates[0].content && data.candidates[0].content.parts.length > 0) {
+                        const aiResponse = data.candidates[0].content.parts[0].text;
+                        appendMessage(aiResponse, 'ai-message');
+                    } else {
+                         appendMessage('AI không có phản hồi cho tin nhắn này.', 'ai-message');
+                    }
+                })
+                .catch(error => {
+                    console.error('Lỗi:', error);
+                    chatHistory.removeChild(waitingMessage);
+                    appendMessage(`Đã có lỗi xảy ra khi gọi API. Vui lòng kiểm tra lại API Key và Console (F12) để biết chi tiết. Lỗi: ${error.message}`, 'ai-message');
+                });
+            }
+
+            function appendMessage(text, className) {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message', className);
+
+                if (className === 'ai-message') {
+                    let formattedText = text
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\n/g, '<br>');
+                    messageElement.innerHTML = formattedText;
+                } else {
+                    messageElement.textContent = text;
+                }
+
+                chatHistory.appendChild(messageElement);
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+                return messageElement;
+            }
+        });
+    </script>
+
+</body>
+</html>
