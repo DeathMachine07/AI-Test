@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChatMN Vui Vẻ</title>
+    <title>ChatMN Siêu Vui Vẻ</title>
      <style>
         body {
             background-color: #000000;
@@ -162,7 +162,7 @@
                 conversationHistory.push({ role: "user", parts: [{ text: messageText }] });
                 userInput.value = '';
 
-                const waitingMessage = appendMessage('ChatMN đang suy...', 'ai-message');
+                const waitingMessage = appendMessage('ChatMN đang nghĩ..', 'ai-message');
 
                 fetch(API_URL, {
                     method: 'POST',
